@@ -7,13 +7,16 @@ from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 # on souhaite ici accéder à Azure, afin de pouvoir modifier en live la base de données
 account_url = "https://visionannotation.blob.core.windows.net"
 account_key = "ChrAuRqiX7eMyPTPZzPvAp8RI0J5Cw/2FG0DR8tReMshhdqTmfAwXe5AVduy33dV9D5JmCjw2S7X+AStx9/WWg=="
-container_name = "annotation"
+container_name_initial = "annotation"
+container_name_clean = "annotationclean"
 
 # on teste 2-3 choses avec Azure
 blob_service_client = BlobServiceClient(account_url=account_url, credential=account_key)
 
 # Récupérez le conteneur spécifié
-container_client = blob_service_client.get_container_client(container_name)
+container_client_initial = blob_service_client.get_container_client(container_name_initial)
+container_client_clean = blob_service_client.get_container_client(container_name_clean)
+
 
 # Titre de la page
 st.title("Application d'annotation d'images pour créer un dataset propre")
@@ -65,7 +68,17 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
             shutil.move(liste_chemin[current_index], liste_chemin_valide[current_index])
             del liste_chemin[current_index]
             del liste_fichier[0]
-            #suppression dans Azure, tricky
+            
+            # remplacement du fichier dans la base clean, puis on supprime de la base initiale
+            fichier_azure_initial =  container_client_initial.get_blob_client(current_fichier)
+            # recuperation contenu
+            content_fichier_azure_initial = fichier_azure_initial.download_blob().readall()
+            # ecriture base
+            fichier_azure_ecriture = container_client_clean.get_blob_client(current_fichier)
+            fichier_azure_ecriture.upload_blob(content_fichier_azure_initial)
+            # suppression dans la base initiale
+            fichier_azure_initial.delete_blob()
+            
             # Vérifier l'état de l'image actuelle et mettre à jour en conséquence
             #current_index = (current_index + 1) % len(liste_chemin)
             nombre_restant = len(liste_chemin)
@@ -75,14 +88,15 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
             set_custom_variable(current_f, current_fichier)
             st.experimental_rerun()
     
+    
     with col2:
         if st.button('Invalide'):
             shutil.move(liste_chemin[current_index], liste_chemin_invalide[current_index])
             del liste_chemin[current_index]
             del liste_fichier[0]
             
-            # suppression du fichier via Azure
-            blob_client = container_client.get_blob_client(current_fichier)
+            # suppression du fichier via Azure, dans la base initiale
+            blob_client = container_client_initial.get_blob_client(current_fichier)
             # suppression
             blob_client.delete_blob()
             
@@ -96,12 +110,10 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
             st.experimental_rerun()
 
 
-
-
 def create_path(chaine):
-    c1 = "data/archive/train/" + chaine + "/"
-    c2 = "data/archive/triage/" + chaine + "/valid/"
-    c3 = "data/archive/triage/" + chaine + "/invalid/"
+    c1 = "data/train/" + chaine + "/"
+    c2 = "data/triage/" + chaine + "/valid/"
+    c3 = "data/triage/" + chaine + "/invalid/"
     return c1,c2,c3
 
 
