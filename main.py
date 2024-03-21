@@ -53,7 +53,6 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
     current_fichier = st.session_state.get(current_f, liste_fichier[0])
     nombre_restant = st.session_state.get(var_restant, len(liste_fichier))
     
-    
     st.write("Encore "+ str(nombre_restant) + " images à traiter dans cette catégorie")
     st.write("Nom de l'image: "+ str(current_fichier))
     
