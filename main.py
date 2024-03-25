@@ -2,6 +2,7 @@
 import os
 import streamlit as st
 import shutil
+import time
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 
 # on souhaite ici accéder à Azure, afin de pouvoir modifier en live la base de données
@@ -30,6 +31,7 @@ onglet_selectionne = st.sidebar.radio("Navigation", ["Colère", "Dégoût", "Joi
 def set_custom_variable(custom_variable_name, new_value):
     st.session_state[custom_variable_name] = new_value
 
+
 # fonction importante
 def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
     # partie image
@@ -38,7 +40,6 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
     path_invalide = chemin_invalide
     
     # Chemin local de votre image
-    
     
     liste_fichier = os.listdir(path)
     liste_chemin = [path + fichier for fichier in liste_fichier]
@@ -65,7 +66,7 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
     with col1:
         if st.button('Valide'):
             shutil.move(liste_chemin[current_index], liste_chemin_valide[current_index])
-            del liste_chemin[current_index]
+            del liste_chemin[0]
             del liste_fichier[0]
             
             # remplacement du fichier dans la base clean, puis on supprime de la base initiale
@@ -74,9 +75,11 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
             content_fichier_azure_initial = fichier_azure_initial.download_blob().readall()
             # ecriture base
             fichier_azure_ecriture = container_client_clean.get_blob_client(current_fichier)
-            fichier_azure_ecriture.upload_blob(content_fichier_azure_initial)
+            if not(fichier_azure_ecriture.exists()):
+                fichier_azure_ecriture.upload_blob(content_fichier_azure_initial)
             # suppression dans la base initiale
-            fichier_azure_initial.delete_blob()
+            if fichier_azure_initial.exists():
+                fichier_azure_initial.delete_blob()
             
             # Vérifier l'état de l'image actuelle et mettre à jour en conséquence
             #current_index = (current_index + 1) % len(liste_chemin)
@@ -85,19 +88,21 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
             #set_custom_variable(var_index, current_index)
             set_custom_variable(var_restant, nombre_restant)
             set_custom_variable(current_f, current_fichier)
+            time.sleep(0.3)
             st.experimental_rerun()
     
     
     with col2:
         if st.button('Invalide'):
             shutil.move(liste_chemin[current_index], liste_chemin_invalide[current_index])
-            del liste_chemin[current_index]
+            del liste_chemin[0]
             del liste_fichier[0]
             
             # suppression du fichier via Azure, dans la base initiale
             blob_client = container_client_initial.get_blob_client(current_fichier)
             # suppression
-            blob_client.delete_blob()
+            if blob_client.exists():
+                blob_client.delete_blob()
             
             # Vérifier l'état de l'image actuelle et mettre à jour en conséquence
             #current_index = (current_index + 1) % len(liste_chemin)
@@ -106,7 +111,9 @@ def page(chemin_fichier,chemin_valide, chemin_invalide,emotion):
             #set_custom_variable(var_index, current_index)
             set_custom_variable(var_restant, nombre_restant)
             set_custom_variable(current_f, current_fichier)
+            time.sleep(0.3)
             st.experimental_rerun()
+
 
 
 def create_path(chaine):
