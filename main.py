@@ -8,8 +8,8 @@ from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 # on souhaite ici accéder à Azure, afin de pouvoir modifier en live la base de données
 account_url = "https://visionannotation.blob.core.windows.net"
 account_key = "ChrAuRqiX7eMyPTPZzPvAp8RI0J5Cw/2FG0DR8tReMshhdqTmfAwXe5AVduy33dV9D5JmCjw2S7X+AStx9/WWg=="
-container_name_initial = "annotation"
-container_name_clean = "annotationclean"
+container_name_initial = "annotationvote3"
+container_name_clean = "annotationcleanvote3"
 
 # on teste 2-3 choses avec Azure
 blob_service_client = BlobServiceClient(account_url=account_url, credential=account_key)
